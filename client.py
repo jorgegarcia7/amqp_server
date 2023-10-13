@@ -1,5 +1,4 @@
 import logging
-import time
 import uuid
 
 import pika
@@ -20,6 +19,7 @@ def client(command, body_json):
     It publishes the message to the exchange created by the Server, waits for the Server's response and exits when
     the response is received.
     Each invocation of client() will have its own exclusive queue to avoid consuming other clients' messages.
+    The client implements a timeout, so if no response is received by the server then it exits.
 
     """
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
@@ -44,30 +44,37 @@ def client(command, body_json):
 
     print(f"Sent '{command, body_json}'")
 
-    channel.start_consuming()
+    # Using a loop with channel.consume() instead of channel.start_consuming() to be able to implement an
+    # inactivity_timeout.
+    timeout_seconds = 5
+    for method_frame, properties, body in channel.consume(callback_queue, inactivity_timeout=timeout_seconds):
+        if method_frame:
+            on_response(channel, method_frame, properties, body)
+            break
+        else:
+            print("Request timed out!")
+            break
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.WARNING)  # set to WARNING if we want a clean output of the response
+    logging.basicConfig(level=logging.WARNING)  # set to DEBUG/INFO if we want to see more details
 
-    command = 'SET'
-    body_json = {'key': 'one', 'value': 1}
-    client(command, body_json)
+    client('SET', {'key': 'one', 'value': 1})
 
-    time.sleep(0.1)
+    client('GET', {'key': 'one'})
 
-    command = 'GET'
-    body_json = {'key': 'one'}
-    client(command, body_json)
+    client('GET', {'key': 'two'})
 
-    time.sleep(0.1)
+    client('SET', {'key': 'two', 'value': '2'})
 
-    command = 'GET'
-    body_json = {'key': 'dos'}
-    client(command, body_json)
+    client('GET', {'key': 'two'})
 
-    time.sleep(0.1)
+    client('GET', {'wrong_': 'two'})
 
-    command = 'GET'
-    body_json = {'wrong_': 'dos'}
-    client(command, body_json)
+    client('DELETE', {'key': 'one'})
+
+    client('GET', {'key': 'one'})
+
+    client('DELETE', {'key': 'one'})
+
+    client('DELETE_wrong', {'key': 'one'})
