@@ -4,11 +4,7 @@ import logging
 import aio_pika
 
 
-async def process_message(
-    message: aio_pika.abc.AbstractIncomingMessage,
-    channel: aio_pika.Channel,
-    key_value_dict: dict,
-) -> None:
+async def process_message(message, channel, key_value_dict):
     """
     Processes the messages that come from the client and sends back a response.
     Clients can get the value of a key, set the value of a key, and delete a key-value pair. Examples:
@@ -61,7 +57,7 @@ async def process_message(
         logging.info(" Done")
 
 
-async def server() -> None:
+async def server():
     """
     Starts an asynchronous server that acts as a simple key-value store.
     The server handles multiple client connections concurrently using asyncio.
