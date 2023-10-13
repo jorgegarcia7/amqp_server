@@ -26,10 +26,10 @@ async def process_message(
 
         response = {}
 
-        if command == 'SET' and set(data_dict.keys()) != {'key', 'value'}:
+        if command == "SET" and set(data_dict.keys()) != {"key", "value"}:
             response["error"] = "Wrong JSON format. Example JSON: {'key': 'tralala', 'value': 123}"
 
-        elif command in ['GET', 'DELETE'] and set(data_dict.keys()) != {'key'}:
+        elif command in ["GET", "DELETE"] and set(data_dict.keys()) != {"key"}:
             response["error"] = "Wrong JSON format. Example JSON: {'key': 'tralala'}"
 
         else:
@@ -55,8 +55,7 @@ async def process_message(
         if message.reply_to:
             logging.info(f" Sending response to {message.reply_to}: {response}")
             await channel.default_exchange.publish(
-                response_message,
-                routing_key=message.reply_to
+                response_message, routing_key=message.reply_to
             )
 
         logging.info(" Done")
@@ -74,19 +73,24 @@ async def server() -> None:
     connection = await aio_pika.connect_robust("amqp://guest:guest@localhost/")
     channel = await connection.channel()
 
-    exchange_name = 'norbit_exchange'
-    exchange = await channel.declare_exchange(exchange_name, aio_pika.ExchangeType.TOPIC)
+    exchange_name = "norbit_exchange"
+    exchange = await channel.declare_exchange(
+        exchange_name, aio_pika.ExchangeType.TOPIC
+    )
     queue = await channel.declare_queue("all_commands_queue", auto_delete=True)
 
-    await queue.bind(exchange, routing_key="#")  # "#" matches any routing_key (works with ExchangeType.TOPIC)
-    await queue.consume(lambda message: process_message(message, channel, key_value_dict))
+    # "#" matches any routing_key (works with ExchangeType.TOPIC)
+    await queue.bind(exchange, routing_key="#")
+    await queue.consume(
+        lambda message: process_message(message, channel, key_value_dict)
+    )
 
     try:
-        logging.info(' Waiting for clients...')
+        logging.info(" Waiting for clients...")
         # Run in perpetuity until it is interrupted (for example with SIGINT)
         await asyncio.Future()
     finally:
-        logging.info(' Closing connection...')
+        logging.info(" Closing connection...")
         await connection.close()
 
 
