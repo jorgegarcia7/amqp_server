@@ -31,8 +31,10 @@ async def process_message(message, channel, key_value_dict):
         else:
             try:
                 if command == "GET":
+                    await asyncio.sleep(1)
                     response["value"] = key_value_dict[data_dict["key"]]
                 elif command == "SET":
+                    await asyncio.sleep(5)
                     key_value_dict[data_dict["key"]] = data_dict["value"]
                     response["status"] = "OK"
                 elif command == "DELETE":

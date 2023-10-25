@@ -1,5 +1,7 @@
 import logging
+import os
 import uuid
+from concurrent import futures
 
 import pika
 import json
@@ -48,7 +50,7 @@ def client(command, body_json):
 
     # Using a loop with channel.consume() instead of channel.start_consuming() to be able to implement an
     # inactivity_timeout.
-    timeout_seconds = 5
+    timeout_seconds = 20
     for method_frame, properties, body in channel.consume(
         callback_queue, inactivity_timeout=timeout_seconds
     ):
@@ -64,22 +66,16 @@ if __name__ == "__main__":
     # set logging to DEBUG/INFO if we want to see more details
     logging.basicConfig(level=logging.WARNING)
 
-    client("SET", {"key": "one", "value": 1})
+    processes = os.cpu_count()
 
-    client("GET", {"key": "one"})
+    _process_jobs = []
+    with futures.ProcessPoolExecutor(max_workers=processes) as p:
+        for i in range(10):
+            job = p.submit(client, "SET", {"key": "one", "value": 1})
+            _process_jobs.append(job)
+            job = p.submit(client, "GET", {"key": "one"})
+            _process_jobs.append(job)
 
-    client("GET", {"key": "two"})
+    for job in futures.as_completed(_process_jobs):
+        job.result()  # wait for result
 
-    client("SET", {"key": "two", "value": "2"})
-
-    client("GET", {"key": "two"})
-
-    client("GET", {"wrong_": "two"})
-
-    client("DELETE", {"key": "one"})
-
-    client("GET", {"key": "one"})
-
-    client("DELETE", {"key": "one"})
-
-    client("DELETE_wrong", {"key": "one"})
