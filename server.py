@@ -59,7 +59,9 @@ async def process_message(message, channel, key_value_dict):
     logging.info(f" Received message {command, data_dict}")
 
     response = await execute_command(command, data_dict, key_value_dict)
-    response_message = aio_pika.Message(body=json.dumps(response).encode(), correlation_id=corr_id)
+    response_message = aio_pika.Message(
+        body=json.dumps(response).encode(), correlation_id=corr_id
+    )
 
     # Publish the response to the reply_to queue specified by the client:
     if message.reply_to:

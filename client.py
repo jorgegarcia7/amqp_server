@@ -58,7 +58,9 @@ def client(commands):
         channel.basic_publish(
             exchange=exchange_name,
             routing_key=command,
-            properties=pika.BasicProperties(reply_to=callback_queue, correlation_id=corr_id),
+            properties=pika.BasicProperties(
+                reply_to=callback_queue, correlation_id=corr_id
+            ),
             body=json.dumps(body_json).encode("utf-8"),
         )
 
